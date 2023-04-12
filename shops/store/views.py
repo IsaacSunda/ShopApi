@@ -96,6 +96,7 @@ class OrderView(generics.CreateAPIView):
     serializer_class = OrderSerializer
 
     def post(self, request):
+        # If you have 1000000 product why will you fetch all
         products = Product.objects.all()
         serializer = OrderSerializer(data=request.data)
         if serializer.is_valid():
@@ -106,17 +107,21 @@ class OrderView(generics.CreateAPIView):
             product_is_valid = False
             cost = 0
             for cart in cartitem:
+                # If you search through 1000000 products how will it work
                 if cart.product in products:
+                    # Why are you going through the database again
                     trans = Product.objects.get(pk=cart.product.pk)
                     if cart.quantity <= trans.available_quantity:
                         cost += cart.cost
                         trans.available_quantity -= cart.quantity
                         product_is_valid = True
+                        # I do not understand why this line
                         trans.save()
                     else:
                         return Response({'error': "The Quantity of the Product is not available"})
                         break
                 else:
+                    # why are you deleting the cart
                     cart.delete()
 
                 if product_is_valid == True:
@@ -132,8 +137,9 @@ class OrderView(generics.CreateAPIView):
                                                   person=carts.person, status=serializer.validated_data['status'],
                                                   cart=carts)
                         transaction.save()
-
+                    # your serializer should not have transaction
                     serializer.validated_data['transaction'] = transaction
+                    # what are you trying to save
                     serializer.save()
 
                     return Response(serializer.data, status=status.HTTP_201_CREATED)
