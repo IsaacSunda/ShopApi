@@ -96,7 +96,7 @@ class OrderView(generics.CreateAPIView):
     serializer_class = OrderSerializer
 
     def post(self, request):
-        products = Product.objects.all()
+        products = Product.objects.filter()
         serializer = OrderSerializer(data=request.data)
         if serializer.is_valid():
             # cartCreate = Cart(cartSession=random.randint, person=)
@@ -107,17 +107,16 @@ class OrderView(generics.CreateAPIView):
             cost = 0
             for cart in cartitem:
                 if cart.product in products:
-                    trans = Product.objects.get(pk=cart.product.pk)
-                    if cart.quantity <= trans.available_quantity:
+                    item = Product.objects.get(pk=cart.product.pk)
+                    if cart.quantity <= item.available_quantity:
                         cost += cart.cost
-                        trans.available_quantity -= cart.quantity
+                        item.available_quantity -= cart.quantity
                         product_is_valid = True
-                        trans.save()
                     else:
                         return Response({'error': "The Quantity of the Product is not available"})
                         break
                 else:
-                    cart.delete()
+                    return Response({'error': "cart does not exist"})
 
                 if product_is_valid == True:
                     # payment = serializer.validated_data['payment']
@@ -126,14 +125,14 @@ class OrderView(generics.CreateAPIView):
                     payment = Payment.objects.get(person=carts.person)
                     if cost <= payment.balance:
                         payment.balance - cost
-                        payment.save()
+                        payment.save() 
 
                         transaction = Transaction(ref=payment.cardNumber, amount=cost, paymentMethod=payment,
                                                   person=carts.person, status=serializer.validated_data['status'],
                                                   cart=carts)
                         transaction.save()
 
-                    serializer.validated_data['transaction'] = transaction
+                    # serializer.validated_data['transaction'] = transaction
                     serializer.save()
 
                     return Response(serializer.data, status=status.HTTP_201_CREATED)
